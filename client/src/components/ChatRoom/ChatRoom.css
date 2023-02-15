@@ -1,7 +1,33 @@
-.page-container {
+.chatroom-page-container {
     display: flex;
+    flex-direction: column;
     height: 100%;
     width: 100%;
-    justify-content: center;
-    align-items: center;
+}
+
+.title {
+    font-weight: 400;
+    font-size: xx-large;
+    margin-top: 2vh;
+    margin-bottom: 2vh;
+    align-self: center;
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-self: center;
+    height: 75%;
+    width: 75%;
+    border: solid 1px;
+    padding: 2vh;
+}
+
+.messages-container {
+    overflow: auto;
+}
+
+.textfield {
+    margin-top: 1vh;
 }

@@ -30,7 +30,7 @@ const Login: React.FC<LoginScreenProps> = (props): JSX.Element => {
     }
 
     return (
-        <div className="page-container">
+        <div className="login-page-container">
             <div className="login-container">
                 <div>
                     <div className="input-title">Please Enter Your Username:</div>

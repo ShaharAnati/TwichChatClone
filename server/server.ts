@@ -14,24 +14,25 @@ const httpServer = app.listen(process.env.PORT || 3000, () => {
   });
 
 const io = new Server(httpServer);
+const chatroomUserSocketIds = new Map();
 
 io.on("connection", (socket) => {
   socket.on("connectToRoom", async (data) => {
     const { user } = data;
+
+    chatroomUserSocketIds.set(socket.id, { user });
 
     await messagesModel.create({
       user,
       messageType: ChatRoomMessage.userConnect
     });
 
-    console.log("Created new message in database");
-
     socket.emit("initialData", await getAllMessages() as MessagePayload[]);
 
     socket.broadcast.emit("newMessage", {user, messageType: ChatRoomMessage.userConnect})
   })
 
-  socket.on("messageReceived", async (data) => {
+  socket.on("newMessage", async (data) => {
     const { user, text } = data;
 
     const message: MessagePayload = {
@@ -45,11 +46,28 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("newMessage", message)
   })
 
+  socket.on("disconnect", async () => {
+    if (chatroomUserSocketIds.has(socket.id)) {
+      const { user } = chatroomUserSocketIds.get(socket.id);
+
+      chatroomUserSocketIds.delete(socket.id);
+
+      const newMessage: MessagePayload = {
+        user,
+        messageType: ChatRoomMessage.userDisconnect
+      }
+      socket.broadcast.emit("newMessage", newMessage);
+    }
+
+    console.log("disconnected");
+  });
+
+  io.emit("connected");
 })
 
 const init = async (): Promise<void> => {
   await connectToDatabase();
-  messagesModel.deleteMany();
+  await messagesModel.deleteMany({});
   
   app.use(bodyParser.json());
   app.use(BuildResourceRouter());

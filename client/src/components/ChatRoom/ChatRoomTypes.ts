@@ -14,3 +14,7 @@ export interface MessagePayload {
     user: User;
     text?: string;
 };
+
+export interface UserColors {
+    [userId: string]: string;
+}

@@ -1,12 +1,9 @@
 import React from "react";
-import { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-import { CircularProgress } from "@mui/material"
+import { CircularProgress, TextField } from "@mui/material"
 
-import { MessagePayload, User } from "./ChatRoomTypes";
+import { ChatRoomMessage, MessagePayload, User } from "./ChatRoomTypes";
 import "./ChatRoom.css";
-
-let socket;
+import useChatRoomLogic from "./useChatRoomLogic";
 
 interface ChatRoomScreenProps {
     currentUser: User;
@@ -15,31 +12,71 @@ interface ChatRoomScreenProps {
 const ChatRoom: React.FC<ChatRoomScreenProps> = (props): JSX.Element => {
 
     const { currentUser } = props;
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [existingMessages, setExistingMessages] = useState<MessagePayload[]>();
 
-    function initWebsocket() {
-        socket = io();
-        socket.emit("connectToRoom", {user: currentUser});
+    const [
+        existingMessages,
+        usersColors,
+        newMessageText,
+        setNewMessageText,
+        messagesRef,
+        socket,
+        handleTextfieldKeyPress
+    ] = useChatRoomLogic(currentUser);
 
-        socket.on("initialData", (data: MessagePayload[]) => {
-            console.log("received initial data")
-            setIsLoading(false);
-            setExistingMessages(data);
-        })
+    const getSingleMessage = (message: MessagePayload): JSX.Element => {
+        if (!Object.keys(usersColors).includes(message.user.id)) {
+            const newColor = Math.floor(Math.random() * 16777215).toString(16);
+            usersColors[message.user.id] = newColor;
+        }
 
-        return socket;
+        const currentColor = usersColors[message.user.id]
+
+        return (
+            <div key={`${message.user.id}${message.messageType}${message.text}`}>
+                <span style={{ color: `#${currentColor}` }}>{message.user.name}</span>
+                {message.messageType === ChatRoomMessage.userConnect
+                    ? <span > connected to the room</span>
+                    : message.messageType === ChatRoomMessage.userMessage
+                        ? <span>: {message.text}</span>
+                        : <span> has disconnected from the room</span>
+                }                 
+            </div>
+        )
     }
 
-    useEffect(() => {       
-        const socket = initWebsocket();
-        return () => socket.disconnect();
-    }, [])
+    if (!socket) return (
+        <CircularProgress />
+    )
 
     return (
-        <div className="page-container">
+        <div className="chatroom-page-container">
             {
-                isLoading ? <CircularProgress /> : <div>Welcome to the chat room {currentUser.name}!</div>
+                !socket 
+                ? <CircularProgress />
+                : (
+                    <>
+                        <div className="title">Welcome to the chat room!</div>
+                        <div className="chat-container">
+                            <div className="messages-container" ref={messagesRef}>
+                                {existingMessages.map(getSingleMessage)}
+                            </div>
+                            <div className="textfield">
+                                <TextField 
+                                    id="message" 
+                                    name="message"
+                                    label="New Message"
+                                    fullWidth
+                                    size="medium"
+                                    variant="outlined"
+                                    value={newMessageText}
+                                    autoFocus
+                                    onChange={(text) => setNewMessageText(text.target.value)}
+                                    onKeyDown={(ev) => handleTextfieldKeyPress(ev)}
+                                />
+                            </div>
+                        </div> 
+                    </>
+                )
             }
         </div>
     )
